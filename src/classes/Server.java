@@ -1,16 +1,21 @@
+package classes;
+
+import services.LoggingService;
+
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Server implements Runnable {
 
-    private int port;
     public ServerSocket serverSocket;
     // serverSocket socket - for handling all requests (serverSocket.accept() returns new socket for each client)
     //       Socket socket - for each client communication
+
+
+    // server port
+    private final int port;
 
     // connected clients
     private HashMap<Integer, Socket> clients = new HashMap<>();
@@ -18,11 +23,11 @@ public class Server implements Runnable {
     // client ID TODO: replace clientId with clientName received from client
     private int clientId = 0;
 
+    // constructor
     public Server(int port) {
         this.port = port;
+        this.run();
     }
-
-    public int getPort() { return this.port; }
 
     // make clients private
     public HashMap<Integer , Socket> getClients() { return this.clients; }
@@ -33,7 +38,7 @@ public class Server implements Runnable {
     public void run() {
         try {
             this.serverSocket = new ServerSocket(this.port);
-            System.out.println("SERVER started: " + this.serverSocket);
+            logMessage("started: " + this.serverSocket);
 
             // ONLY ESTABLISH SEPARATE NEW SOCKET FOR EACH CLIENT
             // AND GET BACK TO WAITING FOR NEW CLIENTS
@@ -48,7 +53,7 @@ public class Server implements Runnable {
             handleNewClients.start();
         }
         catch(IOException ex) {
-            System.out.println("SERVER: failed to create serverSocket " + ex);
+            logMessage("failed to start: " + ex);
             ex.printStackTrace();
         }
     }
@@ -58,13 +63,13 @@ public class Server implements Runnable {
         try {
             // accept method blocks until request comes
             // then returns different socket on another anonymous port to communicate with client
-            System.out.println("SERVER: waiting for client...");
+            logMessage("waiting for client...");
             Socket specificClientSocket = this.serverSocket.accept();
             // increase clientId
             this.clientId++;
             // map clientId to client address
             this.clients.put(this.clientId, specificClientSocket);
-            System.out.println("SERVER: connection with client successful: " + this.clients);
+            logMessage("connection with client successful: " + this.clients);
             Thread handleClientConnectionThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -74,7 +79,7 @@ public class Server implements Runnable {
             handleClientConnectionThread.start();
         }
         catch (IOException ex) {
-            System.out.println("SERVER: failed to establish connection with client: " + ex);
+            logMessage("failed to establish connection with client: " + ex);
             ex.printStackTrace();
         }
     }
@@ -85,7 +90,7 @@ public class Server implements Runnable {
             handleClientAction(socket, clientId);
         } catch (IOException ex) {
             // TODO: find a way to print which client
-            System.out.println("SERVER: connection with client failed: " + ex);
+            logMessage("connection with client failed: " + ex);
             ex.printStackTrace();
         }
     }
@@ -97,7 +102,7 @@ public class Server implements Runnable {
         do {
             message = reader.readFromSocket(socket);
             if (message != "") {
-                System.out.println("SERVER: new message: " + message);
+                logMessage("new message: " + message);
             }
         } while(!message.equals("END"));
         // when message == "END" from client, close the socket
@@ -107,7 +112,7 @@ public class Server implements Runnable {
 
     // send message to client
     public void sendMessage(Socket clientSocket, String message) {
-        System.out.println("SERVER: trying to send message: " + message);
+        logMessage("trying to send message: " + message);
         try {
             // TODO: right now writer is created on each sendMessage call
             // TODO: try to assign writer in hashmap for each socket and use it as long as socket is open
@@ -116,7 +121,8 @@ public class Server implements Runnable {
 //            writer.close();
         }
         catch(IOException ex) {
-            System.out.println("server write to socket exception: " + ex);
+            // TODO: to who?
+            logMessage("failed to send message: " + ex);
             ex.printStackTrace();
         }
     }
@@ -133,15 +139,22 @@ public class Server implements Runnable {
             // TODO: also do cleanup when server closes connection
         }
         catch(IOException ex) {
-            System.out.println("SERVER: failed to close socket: " + ex);
+            logMessage("failed to close connection: " + ex);
         }
         // TODO: find a way to log what client left
-        System.out.println("SERVER: connection closed server side: " + this.clients);
+        logMessage("connection successfully closed: " + this.clients);
     }
 
     // get socket for specific client
     // TODO: FIGURE OUT HOW TO PASS CLIENT NAME TO SERVER AND PUT IN HASHMAP
     public void getClientSocket(String clientName) {
 //        return
+    }
+
+    // log message to the console
+    // TODO: add server name or something to log
+    private void logMessage(String message) {
+        String msg = "SERVER: " + message;
+        LoggingService.logMessage(msg);
     }
 }

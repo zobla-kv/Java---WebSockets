@@ -1,11 +1,18 @@
+package classes;
+
+import models.MethodModel;
+import services.LoggingService;
+import services.ThreadService;
+
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.Socket;
 
 public class Client {
 
-    private String name;
     public Socket socket;
 
+    private final String name;
     private Writer writer;
     private Reader reader;
 
@@ -20,26 +27,31 @@ public class Client {
     public void connectToServer(String host, int port) {
         try {
             this.socket = new Socket(host, port);
-            Thread handleServerConnectionThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    handleServerConnection(socket);
-                }
-            });
-            handleServerConnectionThread.start();
+            MethodModel<Client, Socket> method = new MethodModel<>(this, "handleServerConnection", this.socket);
+            ThreadService.runInSeparateThread(method);
+
+//            Thread handleServerConnectionThread = new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    handleServerConnection(socket);
+//                }
+//            });
+//            handleServerConnectionThread.start();
         }
         catch(IOException ex) {
-            System.out.println("CLIENT: failed to connect to server: " + ex);
+            logMessage("failed to connect to server: " + ex);
+            ex.printStackTrace();
         }
     }
 
     // handles server related activities
-    private void handleServerConnection(Socket socket) {
+    public void handleServerConnection() {
         try {
-            setupStreams(socket);
-            handleServerAction(socket);
+            // TODO: remove 'this', figure out how to pass socket to runInSeparateThread method
+            setupStreams(this.socket);
+            handleServerAction(this.socket);
         } catch (IOException ex) {
-            System.out.println("CLIENT: connection with server failed: " + ex);
+            logMessage("connection with server failed: " + ex);
             ex.printStackTrace();
         }
     }
@@ -54,11 +66,12 @@ public class Client {
 
     // handle server related action (read from server)
     private void handleServerAction(Socket socket) throws IOException {
-        String message = "";
+        System.out.println("MDKF CALLED");
+        String message;
         do {
             message = this.reader.readFromSocket(socket);
-            if (message != "") {
-                System.out.println("CLIENT: new message: " + message);
+            if (!message.equals("")) {
+                logMessage("new message: " + message);
             }
         } while(!message.equals("END"));
 //         when message == "END" from client, close the socket
@@ -66,7 +79,7 @@ public class Client {
     }
 
     public void sendMessage(String message) {
-        System.out.println("CLIENT: trying to send message: " + message);
+        logMessage("trying to send message: " + message);
         this.writer.writeToSocket(this.socket, message);
     }
 
@@ -78,9 +91,16 @@ public class Client {
             // TODO: also close socket when client initiates
         }
         catch(IOException ex) {
-            System.out.println("SERVER: failed to close socket: " + ex);
+            logMessage("failed to close connection: " + ex);
+            ex.printStackTrace();
         }
-        System.out.println("CLIENT: server closed connection: " + this.getName());
+        logMessage("connection successfully closed");
+    }
+
+    // log message to the console
+    private void logMessage(String message) {
+        String msg = "CLIENT " + this.getName() + ": " + message;
+        LoggingService.logMessage(msg);
     }
 
 }
