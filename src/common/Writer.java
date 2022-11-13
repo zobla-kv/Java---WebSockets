@@ -1,4 +1,4 @@
-package classes;
+package common;
 
 import java.io.*;
 import java.net.Socket;
@@ -8,7 +8,7 @@ public class Writer {
     // use PrintWriter instead of BufferedWriter to send whole string
     PrintWriter writer;
 
-    // parametrized constuctor, create classes.Writer attached to a socket
+    // parametrized constuctor, create common.Writer attached to a socket
     public Writer(Socket socket) throws IOException {
         this.writer = new PrintWriter(socket.getOutputStream());
     }

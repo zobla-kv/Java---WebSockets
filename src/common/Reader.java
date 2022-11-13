@@ -1,4 +1,4 @@
-package classes;
+package common;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,10 +7,10 @@ import java.net.Socket;
 
 public class Reader {
 
-    // classes.Reader connected to a stream
+    // common.Reader connected to a stream
     BufferedReader reader;
 
-    // parametrized constuctor, create classes.Reader attached to a socket
+    // parametrized constuctor, create common.Reader attached to a socket
     // TODO: not good atm because readFromSocket expects a socket as arg (it is already set here)
     public Reader(Socket socket) throws IOException {
         InputStreamReader stream = new InputStreamReader(socket.getInputStream());

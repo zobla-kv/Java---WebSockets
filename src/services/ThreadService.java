@@ -1,32 +1,35 @@
 package services;
 
+import java.lang.reflect.Method;
 import models.MethodModel;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
-
+import java.net.Socket;
+import java.util.HashMap;
 
 public abstract class ThreadService {
 
-    // executes passed method in separate thread
+    // creates separate thread for passed method to execute in
+    // TODO: DRAWBACK -> requires methods to be public
+    // TODO: ENABLE PASSING MULTIPLE PARAMS !!
+    //  now only 1 can be sent
     public static void runInSeparateThread(MethodModel method) {
         new Thread(() -> runMethod(method)).start();
     }
 
+    // executes passed method in separate thread
     private static void runMethod(MethodModel method) {
+        Method currentMethod;
         try {
-            Class<?> currentMethodOwnerClass = Class.forName(method.obj.getClass().getName());
-            // TODO: how to pass params to getDeclaredMethod
-            Method currentMethod = currentMethodOwnerClass.getDeclaredMethod(method.methodName);
-            currentMethod.invoke(method.obj);
+            if (method.param != null) {
+                currentMethod = method.currentObject.getClass().getMethod(method.methodName, method.param.getClass());
+                currentMethod.invoke(method.currentObject, method.param);
+            } else {
+                currentMethod = method.currentObject.getClass().getMethod(method.methodName);
+                currentMethod.invoke(method.currentObject);
+            }
         }
         //TODO: implement ThreadServiceException
-        catch(ClassNotFoundException ex) {
-            LoggingService.logMessage("No class with that name found");
-            ex.printStackTrace();
-        }
         catch(NoSuchMethodException ex) {
             LoggingService.logMessage("No method with that name found");
             ex.printStackTrace();
@@ -35,10 +38,41 @@ public abstract class ThreadService {
             LoggingService.logMessage("Failed to invoke a method");
             ex.printStackTrace();
         }
-        catch (IllegalAccessException e) {
+        catch (IllegalAccessException ex) {
             LoggingService.logMessage("Failed to invoke a method: not public");
-            e.printStackTrace();
+            ex.printStackTrace();
         }
     }
 
+
+//    SERVER
+//Thread handleNewClients = new Thread(new Runnable() {
+//    @Override
+//    public void run() {
+//        while(true) {
+//            handleNewClient();
+//        }
+//    }
+//});
+//            handleNewClients.start();
+
+
+    // CLIENT
+    //            Thread handleServerConnectionThread = new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    handleServerConnection(socket);
+//                }
+//            });
+//            handleServerConnectionThread.start();
+
+
+    // SERVER -> handleNewClient
+//    Thread handleClientConnectionThread = new Thread(new Runnable() {
+//        @Override
+//        public void run() {
+//            handleClientConnection(specificClientSocket, clientId);
+//        }
+//    });
+//            handleClientConnectionThread.start();
 }

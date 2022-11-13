@@ -1,12 +1,17 @@
-package classes;
+package client;
 
+import common.Reader;
+import common.Writer;
+import constants.Constants;
 import models.MethodModel;
+import server.Server;
 import services.LoggingService;
 import services.ThreadService;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.Collections;
 
 public class Client {
 
@@ -27,16 +32,11 @@ public class Client {
     public void connectToServer(String host, int port) {
         try {
             this.socket = new Socket(host, port);
-            MethodModel<Client, Socket> method = new MethodModel<>(this, "handleServerConnection", this.socket);
-            ThreadService.runInSeparateThread(method);
-
-//            Thread handleServerConnectionThread = new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    handleServerConnection(socket);
-//                }
-//            });
-//            handleServerConnectionThread.start();
+            ThreadService.runInSeparateThread(new MethodModel(
+                    this,
+                    "handleServerConnection",
+                    null
+            ));
         }
         catch(IOException ex) {
             logMessage("failed to connect to server: " + ex);
@@ -65,17 +65,19 @@ public class Client {
     }
 
     // handle server related action (read from server)
-    private void handleServerAction(Socket socket) throws IOException {
-        System.out.println("MDKF CALLED");
+    public void handleServerAction(Socket socket) throws IOException {
+        logMessage("connected with server");
         String message;
         do {
-            message = this.reader.readFromSocket(socket);
+            message = reader.readFromSocket(socket);
             if (!message.equals("")) {
+                if(message.equals(Constants.ABORT_CONNECTION_MESSAGE)) {
+                    this.closeSocket();
+                    break;
+                }
                 logMessage("new message: " + message);
             }
-        } while(!message.equals("END"));
-//         when message == "END" from client, close the socket
-        this.closeSocket();
+        } while(true);
     }
 
     public void sendMessage(String message) {
