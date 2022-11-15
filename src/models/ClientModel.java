@@ -12,11 +12,15 @@ public class ClientModel {
 
     public Writer writer;
 
+    public boolean isNull = true;
+
     public ClientModel(String name, Socket socket, Writer writer) {
         this.name = name;
         this.socket = socket;
         this.writer = writer;
+        this.isNull = false;
     }
+
 
     @Override
     public String toString() {

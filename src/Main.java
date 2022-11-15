@@ -28,13 +28,17 @@ public class Main {
         gondor.sendMessage("GONDOR TO SERVER");
 
         Thread.sleep(2000);
-        server1.sendMessage(server1.getClients().get("Client_2").name, "SISO");
+        server1.sendMessage("Zobla", "SISO 1");
 
         Thread.sleep(2000);
         zobla.connectToServer(Constants.LOCALHOST, Constants.SERVER_PORT);
 
         Thread.sleep(2000);
         zobla.sendMessage("ZOBLA IS BACK");
+
+        Thread.sleep(2000);
+        server1.sendMessage("Zobla", "SISO 2");
+
 
         Thread.sleep(2000);
         gondor.sendMessage(Constants.ABORT_CONNECTION_MESSAGE);

@@ -4,14 +4,11 @@ import common.Reader;
 import common.Writer;
 import constants.Constants;
 import models.MethodModel;
-import server.Server;
 import services.LoggingService;
 import services.ThreadService;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.Socket;
-import java.util.Collections;
 
 public class Client {
 
@@ -48,7 +45,7 @@ public class Client {
     public void handleServerConnection() {
         try {
             // TODO: remove 'this', figure out how to pass socket to runInSeparateThread method
-            setupStreams(this.socket);
+            setupConnection(this.socket);
             handleServerAction(this.socket);
         } catch (IOException ex) {
             logMessage("connection with server failed: " + ex);
@@ -57,19 +54,28 @@ public class Client {
     }
 
     // initialize read/write streams
-    private void setupStreams(Socket socket) throws IOException {
+    private void setupConnection(Socket socket) throws IOException {
         // TODO: 'this' allowed for client because client has 1 socket (1 reader/writer is enough)
         // TODO: for having multiple sockets on same client this wouldn't work
         this.writer = new Writer(socket);
         this.reader = new Reader(socket);
+
+        // send initial config message
+        String nameParameter = generateParam("name", this.name);
+        String clientConfig = "{" + nameParameter + "}";
+        sendMessage(Constants.CLIENT_CONFIG_MESSAGE + clientConfig);
+    }
+
+    // returns param="param" for server to understand config
+    private String generateParam(String param, String value) {
+        return param + "=\"" + value + "\"";
     }
 
     // handle server related action (read from server)
     public void handleServerAction(Socket socket) throws IOException {
-        logMessage("connected with server");
         String message;
         do {
-            message = reader.readFromSocket(socket);
+            message = reader.readFromSocket();
             if (!message.equals("")) {
                 if(message.equals(Constants.ABORT_CONNECTION_MESSAGE)) {
                     this.closeSocket();

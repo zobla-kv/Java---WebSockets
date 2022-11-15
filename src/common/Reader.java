@@ -10,7 +10,7 @@ public class Reader {
     // common.Reader connected to a stream
     BufferedReader reader;
 
-    // parametrized constuctor, create common.Reader attached to a socket
+    // parametrized constuctor, create Reader attached to a socket
     // TODO: not good atm because readFromSocket expects a socket as arg (it is already set here)
     public Reader(Socket socket) throws IOException {
         InputStreamReader stream = new InputStreamReader(socket.getInputStream());
@@ -19,7 +19,7 @@ public class Reader {
     }
 
     // read message from socket
-    public String readFromSocket(Socket socket) throws IOException {
+    public String readFromSocket() throws IOException {
         String data = "";
         while(reader.ready() && reader.readLine() != null) {
             data += reader.readLine();

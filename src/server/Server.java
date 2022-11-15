@@ -1,6 +1,5 @@
 package server;
 
-import client.Client;
 import common.Reader;
 import common.Writer;
 import constants.Constants;
@@ -12,7 +11,6 @@ import services.ThreadService;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collections;
 import java.util.HashMap;
 
 public class Server {
@@ -38,6 +36,9 @@ public class Server {
 
     // get all clients
     public HashMap<String , ClientModel> getClients() { return this.clients; }
+
+    // get single client
+    public ClientModel getClient(String clientName) { return this.clients.get(clientName); }
 
     public void start() {
         try {
@@ -69,66 +70,88 @@ public class Server {
 
     // handle new client
     public void handleClient(Socket specificClientSocket) throws IOException {
-            String clientName = addClientConfig(specificClientSocket);
-            handleClientConnection(clients.get(clientName));
+//            String clientName = addClientConfig(specificClientSocket);
+            handleClientConnection(specificClientSocket);
     }
 
     // setup new client data on server
-    private String addClientConfig(Socket specificClientSocket) throws IOException {
+    // TODO: generate random number to prevent clients with same names
+    private ClientModel addClientConfig(Socket clientSocket, String message) throws IOException {
+        String clientName = getParameterFromMessage("name", message);
+        ClientModel client = new ClientModel(clientName, clientSocket, new Writer(clientSocket));
         // increase clientId
         this.clientId++;
-        // generate client name
-        String name = "Client_" + clientId;
-        // map writer to client
-        Writer writer = new Writer(specificClientSocket);
-        // map clientId to client address
-        this.clients.put(name, new ClientModel(name, specificClientSocket, writer));
-        return name;
+        // map client name to client settings
+        clients.put(clientName, client);
+        return client;
+    }
+
+    // get name
+    private String getParameterFromMessage(String param, String message) {
+        // TODO: + 1 for }, not good for multiple params
+        int index = message.indexOf(param + "=") + param.length() + 1;
+        String value = "";
+        for (int i = index; i < message.length() - 1; i++) {
+            value += message.charAt(i);
+        }
+        // remove double quotes
+        return value.replace("\"", "");
     }
 
     // used after establishing connection
-    public void handleClientConnection(ClientModel client) {
+    public void handleClientConnection(Socket specificClientSocket) {
+        ClientModel client = new ClientModel(null, null, null);
         try {
             String message;
-            Reader reader = new Reader(client.socket);
-            logMessage("connection with client " + client.name + " successful: " + this.clients);
+            Reader reader = new Reader(specificClientSocket);
             do {
-                message = reader.readFromSocket(client.socket);
+                message = reader.readFromSocket();
                 if (!message.equals("")) {
+                    if (message.startsWith(Constants.CLIENT_CONFIG_MESSAGE)) {
+                        client = addClientConfig(specificClientSocket, message);
+                        logMessage("connection with client " + client.name + " successful: " + this.clients);
+                    }
                     if(message.equals(Constants.ABORT_CONNECTION_MESSAGE)) {
-                        this.closeSocket(client);
+                        this.disconnectClient(client.name);
                         break;
                     }
                     logMessage("new message: " + message);
                 }
             } while(true);
         } catch (IOException ex) {
+            // TODO: client maybe closed connection unexpectedly
+            //  without sending right keyword
+            //  do cleanup also - call disconnectClient
             logMessage("connection with client: " + client.name + " failed");
             ex.printStackTrace();
         }
     }
 
     // close socket and cleanup
-    // TODO: do cleanup when server closes connection
-    private void closeSocket(ClientModel client) {
+    // TODO: DO I REALLY NEED ClientModel or Client is enough or maybe just a name?
+    //  already changed, try to switch to Client ?
+    private void disconnectClient(String clientName) {
         try {
             // close socket, this will close read/write streams also
-            client.socket.close();
+            this.clients.get(clientName).socket.close();
             // remove from clients hashmap
-            this.clients.remove(client.name);
+            this.clients.remove(clientName);
         }
         catch(IOException ex) {
-            logMessage("failed to close connection: " + ex);
+            logMessage("failed to disconnect client: " + ex);
         }
-        logMessage("connection with client: " + client.name + " successfully closed: " + this.clients);
+        logMessage("client: " + clientName + " successfully disconnected: " + this.clients);
     }
 
     // send message to client
     public void sendMessage(String clientName, String message) {
+        if (!isClientConnected(clientName)) {
+            // TODO: throw exception or something
+            logMessage("send message failed: client " + clientName + " not connected");
+            return;
+        }
         logMessage("trying to send message: " + message);
 //        try {
-            // TODO: right now writer is created on each sendMessage call
-            // TODO: try to assign writer in hashmap for each socket and use it as long as socket is open
             ClientModel client = clients.get(clientName);
             client.writer.writeToSocket(client.socket, message);
 //            writer.close();
@@ -143,10 +166,8 @@ public class Server {
 //        }
     }
 
-    // get socket for specific client
-    // TODO: FIGURE OUT HOW TO PASS CLIENT NAME TO SERVER AND PUT IN HASHMAP
-    public void getClientSocket(String clientName) {
-//        return
+    private boolean isClientConnected(String name) {
+        return clients.containsKey(name);
     }
 
     // log message to the console
