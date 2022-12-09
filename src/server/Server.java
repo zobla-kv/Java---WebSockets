@@ -52,8 +52,19 @@ public class Server {
         }
     }
 
+    public void close() throws IOException {
+        try {
+            logMessage("closing...");
+            this.serverSocket.close();
+        }
+        catch(IOException ex) {
+            logMessage("failed to close: " + ex);
+            ex.printStackTrace();
+        }
+    }
+
     public void waitForClients() {
-        while(true) {
+        while(!this.serverSocket.isClosed()) {
            try {
                logMessage("waiting for client...");
                // accept method blocks until request comes
