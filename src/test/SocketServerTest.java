@@ -51,8 +51,8 @@ public class SocketServerTest {
 
 //            server1.close();
 
-        } catch(InterruptedException | IOException ex) {
-            System.out.println("Failed to run SocketServer test");
+        } catch(InterruptedException ex) {
+            System.out.println("Failed to run SocketServer test: " + ex);
         }
     }
 
